@@ -1,71 +1,106 @@
-use AtliQ;
-select * from customers$;
-select * from date$;
-select * from [dbo].[markets$]
-select * from [dbo].[products$]
-select * from [dbo].[transactions$]
---DATA CLEANING 
---Checking for nulls in all the columns of every table
-select 
-sum(case when customer_code is null then 1 else 0 end) as customer_code_nulls,
-sum(case when customer_name is null then 1 else 0 end) as customer_name_nulls,
-sum(case when customer_type is null then 1 else 0 end) as customer_type_nulls
-from customers$
+-- ========================================
+-- Project: AtliQ Sales Data Analysis
+-- Purpose: Data Cleaning, Anomaly Detection,
+--          and Sales/Customer Insights
+-- ========================================
 
-    
-select 
-sum(case when date is null then 1 else 0 end) as date_nulls,
-sum(case when [cy-date] is null then 1 else 0 end) as cydate_nulls,
-sum(case when year is null then 1 else 0 end) as year_nulls,
-sum(case when month_name is null then 1 else 0 end) as month_nulls
-from date$
+USE AtliQ;
 
-alter table date$ drop column  date_yy_mmm
+-- Inspect all tables
+SELECT * FROM customers$;
+SELECT * FROM date$;
+SELECT * FROM [dbo].[markets$];
+SELECT * FROM [dbo].[products$];
+SELECT * FROM [dbo].[transactions$];
 
-select 
-sum(case when market_code is null then 1 else 0 end) as marketcode_nulls,
-sum(case when markets_name is null then 1 else 0 end) as marketname_nulls,
-sum(case when zone is null then 1 else 0 end) as region_nulls
-from markets$
---2 nulls found in region 
-delete from markets$ where zone is null
-!(image/Screenshot 2025-08-21 204541.png)
+-- ========================================
+-- DATA CLEANING
+-- ========================================
 
-select 
-sum(case when product_code is null then 1 else 0 end) as productcode_nulls,
-sum(case when product_type is null then 1 else 0 end) as marketname_nulls
-from products$
+-- 1. Check for NULL values in customers table
+SELECT 
+    SUM(CASE WHEN customer_code IS NULL THEN 1 ELSE 0 END) AS customer_code_nulls,
+    SUM(CASE WHEN customer_name IS NULL THEN 1 ELSE 0 END) AS customer_name_nulls,
+    SUM(CASE WHEN customer_type IS NULL THEN 1 ELSE 0 END) AS customer_type_nulls
+FROM customers$;
 
-select 
-sum(case when product_code is null then 1 else 0 end) as productcode_nulls,
-sum(case when customer_code is null then 1 else 0 end) as customercode_nulls,
-sum(case when market_code is null then 1 else 0 end) as marketcode_nulls,
-sum(case when order_date is null then 1 else 0 end) as order_nulls,
-sum(case when sales_qty is null then 1 else 0 end) as sales_nulls,
-sum(case when sales_amount is null then 1 else 0 end) as amount_nulls,
-sum(case when currency is null then 1 else 0 end) as currency_nulls
-from transactions$
+-- 2. Check for NULL values in date table
+SELECT 
+    SUM(CASE WHEN date IS NULL THEN 1 ELSE 0 END) AS date_nulls,
+    SUM(CASE WHEN [cy-date] IS NULL THEN 1 ELSE 0 END) AS cydate_nulls,
+    SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS year_nulls,
+    SUM(CASE WHEN month_name IS NULL THEN 1 ELSE 0 END) AS month_nulls
+FROM date$;
 
-drop table [dbo].[transactions$_xlnm#_FilterDatabase]
+-- Remove unnecessary column
+ALTER TABLE date$ DROP COLUMN date_yy_mmm;
 
---the data is cleaned and can be worked upon 
---DETECTING ANOMALIES 1609=0 values and 2 -ve value 
---we can see some of thedata valuers in sales amountn is 0 which cannot be possible for every sales there is a amount paid 
-select count(sales_amount) as wrong_saleAmt  from  transactions$ where sales_amount=0;  
-select count(sales_amount) as neg_saleAmt  from  transactions$ where sales_amount <0;  --sales amount can never be negative 
+-- 3. Check for NULL values in markets table
+SELECT 
+    SUM(CASE WHEN market_code IS NULL THEN 1 ELSE 0 END) AS marketcode_nulls,
+    SUM(CASE WHEN markets_name IS NULL THEN 1 ELSE 0 END) AS marketname_nulls,
+    SUM(CASE WHEN zone IS NULL THEN 1 ELSE 0 END) AS region_nulls
+FROM markets$;
 
-delete from transactions$ where sales_amount<=0 
+-- Found 2 NULLs in region → Remove those rows
+DELETE FROM markets$ WHERE zone IS NULL;
 
-select count(currency)as bad_currency  from transactions$ where currency='USD' --2 records found
---we need to change it to inr as we wrong currency here 
+-- 4. Check for NULL values in products table
+SELECT 
+    SUM(CASE WHEN product_code IS NULL THEN 1 ELSE 0 END) AS productcode_nulls,
+    SUM(CASE WHEN product_type IS NULL THEN 1 ELSE 0 END) AS producttype_nulls
+FROM products$;
 
-update  [transactions$] set  currency = 'INR' where currency ='USD'
+-- 5. Check for NULL values in transactions table
+SELECT 
+    SUM(CASE WHEN product_code IS NULL THEN 1 ELSE 0 END) AS productcode_nulls,
+    SUM(CASE WHEN customer_code IS NULL THEN 1 ELSE 0 END) AS customercode_nulls,
+    SUM(CASE WHEN market_code IS NULL THEN 1 ELSE 0 END) AS marketcode_nulls,
+    SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS order_nulls,
+    SUM(CASE WHEN sales_qty IS NULL THEN 1 ELSE 0 END) AS sales_nulls,
+    SUM(CASE WHEN sales_amount IS NULL THEN 1 ELSE 0 END) AS amount_nulls,
+    SUM(CASE WHEN currency IS NULL THEN 1 ELSE 0 END) AS currency_nulls
+FROM transactions$;
 
-select * from [transactions$]
+-- Drop unnecessary temporary table
+DROP TABLE [dbo].[transactions$_xlnm#_FilterDatabase];
 
---now we are done with cleaning part let's analyze 
+-- ========================================
+-- ANOMALY DETECTION & FIXES
+-- ========================================
 
-create view sales_data AS 
+-- Identify invalid sales_amount entries
+
+SELECT COUNT(sales_amount) AS zero_sales 
+FROM transactions$ 
+WHERE sales_amount = 0;   -- 1609 rows with sales_amount = 0
+
+SELECT COUNT(sales_amount) AS negative_sales 
+FROM transactions$ 
+WHERE sales_amount < 0;   -- 2 rows with negative sales
+
+-- Remove invalid sales records
+DELETE FROM transactions$ WHERE sales_amount <= 0;
+
+-- Check incorrect currency values
+SELECT COUNT(currency) AS wrong_currency 
+FROM transactions$ 
+WHERE currency = 'USD';   -- 2 rows found
+
+-- Fix currency to INR
+UPDATE transactions$ 
+SET currency = 'INR' 
+WHERE currency = 'USD';
+
+-- Verify cleaned transactions
+SELECT * FROM transactions$;
+
+-- ========================================
+-- FINAL DATASET CREATION
+-- ========================================
+
+-- Create a unified view joining all relevant tables
+CREATE VIEW sales_data AS 
     SELECT 
         t.sales_qty,
         t.sales_amount,
@@ -82,40 +117,50 @@ create view sales_data AS
     JOIN customers$ c ON t.customer_code = c.customer_code
     JOIN markets$ m ON t.market_code = m.market_code
     JOIN products$ p ON t.product_code = p.product_code
-    JOIN date$ d ON t.order_date = d.date
+    JOIN date$ d ON t.order_date = d.date;
 
+SELECT * FROM sales_data;
 
-SELECT *
-FROM sales_data;
--- now we have combined the data from different table and made a temp table which will help us analyze and trhis is ou final dataset on which we will work on 
+-- ========================================
+-- SALES ANALYSIS
+-- ========================================
 
+-- 1. Total sales by region
 SELECT markets_name, SUM(sales_amount) AS total_sales_by_region 
 FROM sales_data
 GROUP BY markets_name
-ORDER BY total_sales_by_region DESC; --we can see in  delhi ncr  highest sales were made  and top 5 highest sale were in delhi ncr ,mumbai,ahmedabad nagpur and bhopal 
+ORDER BY total_sales_by_region DESC;
+-- Delhi NCR has the highest sales, followed by Mumbai, Ahmedabad, Nagpur, and Bhopal.
 
+-- 2. Total sales by customer
 SELECT customer_name, SUM(sales_amount) AS total_sales_by_customer 
 FROM sales_data
 GROUP BY customer_name
-ORDER BY total_sales_by_customer DESC;  -- highest sales by customer is by electricalsara stores followed by premium stores and excel stores 
---lowest salesby cutomer=electricalsbea stores followed by expression
+ORDER BY total_sales_by_customer DESC;
+-- Top customer: Electricalsara Stores
+-- Bottom customer: Electricalsbea Stores
 
+-- 3. Total sales by year
 SELECT year, SUM(sales_amount) AS total_sales_by_year 
 FROM sales_data
-GROUP BY year; --highest sale byb year in 2018 and then in 2019 lowest in 2017
+GROUP BY year;
+-- Highest sales in 2018, lowest in 2017.
 
+-- 4. Total sales by month
 SELECT month_name, SUM(sales_amount) AS total_sales_by_month
 FROM sales_data
 GROUP BY month_name
-order by total_sales_by_month ; --september has the highest sales and march as the lowest
+ORDER BY total_sales_by_month;
+-- September has the highest sales, March the lowest.
 
+-- 5. Total sales by product type
 SELECT product_type, SUM(sales_amount) AS total_sales_by_product 
 FROM sales_data
 GROUP BY product_type
-ORDER BY total_sales_by_product DESC; 
---the products which are manufactured by atliq itself  more selled as compared to the selling the product of others 
+ORDER BY total_sales_by_product DESC;
+-- AtliQ’s own manufactured products outperform distributed products.
 
-
+-- 6. Top 5 customers by revenue
 SELECT TOP 5 
     customer_name,
     customer_type,
@@ -123,87 +168,99 @@ SELECT TOP 5
 FROM sales_data
 GROUP BY customer_name, customer_type
 ORDER BY revenue DESC;
---  in top 5 customers mostly belong to customer type bricks and mortar and 1 from e-commerece 
+-- Most top customers are from "Bricks & Mortar"; only one from E-commerce.
 
---top 5 region for highest revenue 
+-- 7. Top 5 regions by revenue
 SELECT TOP 5 
     markets_name,
     SUM(sales_qty * sales_amount) AS revenue_by_region
 FROM sales_data
-GROUP BY  markets_name 
+GROUP BY markets_name 
 ORDER BY revenue_by_region DESC;
 
--- revenue by year 
+-- 8. Revenue by year
 SELECT 
     year,
     SUM(sales_qty * sales_amount) AS revenue_by_year
 FROM sales_data
-GROUP BY  year
+GROUP BY year
 ORDER BY revenue_by_year DESC;
 
---revenue by month 
+-- 9. Revenue by month
 SELECT 
     month_name,
     SUM(sales_qty * sales_amount) AS revenue_by_month
 FROM sales_data
-GROUP BY  month_name
+GROUP BY month_name
 ORDER BY revenue_by_month DESC;
 
---revenue contribution by own brand or distribution
+-- 10. Revenue contribution by product type
 SELECT 
     product_type,
     SUM(sales_qty * sales_amount) AS revenue_by_product
 FROM sales_data
-GROUP BY  product_type
+GROUP BY product_type
 ORDER BY revenue_by_product DESC;
 
-SELECT *
-FROM sales_data;
+-- ========================================
+-- SEASONALITY ANALYSIS
+-- ========================================
 
---seosonality analysis 
-with seasonality as ( select sales_qty,sales_amount ,
-case when month_name in ('July','June','August') then 'Summer'
- when month_name in ('September','October','November') then 'Monsoon '
- when month_name in ('December','January','Feburary') then 'Winter'
-else 'Spring' 
-end as seasons from sales_data) 
-
+WITH seasonality AS (
+    SELECT 
+        sales_qty,
+        sales_amount,
+        CASE 
+            WHEN month_name IN ('July','June','August') THEN 'Summer'
+            WHEN month_name IN ('September','October','November') THEN 'Monsoon'
+            WHEN month_name IN ('December','January','February') THEN 'Winter'
+            ELSE 'Spring' 
+        END AS season
+    FROM sales_data
+)
 SELECT 
-    seasons,
+    season,
     SUM(sales_qty * sales_amount) AS revenue_per_season
 FROM seasonality
-GROUP BY  seasons 
+GROUP BY season
 ORDER BY revenue_per_season DESC;
--- spring (i.e. march,april,may) is the best season for revenue 
+-- Spring (March-May) is the best revenue season.
 
---customer acquisition over time.
+-- ========================================
+-- CUSTOMER ANALYSIS
+-- ========================================
 
--- Active customers per year (who bought that year)
+-- 1. Active customers per year
 SELECT year, COUNT(DISTINCT customer_name) AS active_customers
 FROM sales_data
 GROUP BY year
 ORDER BY year;
+-- Active customers peaked in 2017, but no new customers acquired after that.
 
--- Cumulative customer base over time
+-- 2. Cumulative customer acquisition
 WITH first_year AS (
   SELECT customer_name, MIN(year) AS first_purchase_year
-  FROM sales_data GROUP BY customer_name
+  FROM sales_data 
+  GROUP BY customer_name
 ),
 acq AS (
   SELECT first_purchase_year AS year, COUNT(*) AS new_customers
-  FROM first_year GROUP BY first_purchase_year
+  FROM first_year 
+  GROUP BY first_purchase_year
 )
 SELECT
   year,
   new_customers,
-  SUM(new_customers) OVER (ORDER BY year
-    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_customers
+  SUM(new_customers) OVER (ORDER BY year ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_customers
 FROM acq
 ORDER BY year;
+-- 38 new customers acquired in 2017; no growth from 2018-2020.
 
--- Simple year-over-year retention (customers who bought in both Y and Y+1)
+-- 3. Year-over-year customer retention
 WITH y AS (
-  SELECT year, customer_name FROM sales_data GROUP BY year, customer_name
+  SELECT year, customer_name 
+  FROM sales_data 
+  GROUP BY year, customer_name
 )
 SELECT a.year AS base_year,
        COUNT(*) AS retained_next_year
@@ -212,8 +269,14 @@ JOIN y b
   ON b.year = a.year + 1 AND b.customer_name = a.customer_name
 GROUP BY a.year
 ORDER BY base_year;
---“The analysis shows that the company had 38 active customers acquired in 2017, and no new customers were added from 2018 to 2020. 
---While customer retention is exceptionally high at 100%, the lack of new acquisitions suggests stagnation in customer base growth.
+-- Retention is 100% (all customers stayed), but acquisition is stagnant.
 
---This may indicate reliance on a fixed set of loyal customers, and expansion strategies may be needed for long-term growth.”
+-- ========================================
+-- INSIGHTS SUMMARY
+-- ========================================
+-- 1. Delhi NCR & Mumbai are key revenue drivers.
+-- 2. Electricalsara Stores is the top customer; AtliQ’s own products dominate sales.
+-- 3. Spring season is the most profitable.
+-- 4. Customer base is loyal but stagnant since 2017.
+-- 5. Strategy needed for new acquisitions to ensure growth.
 
