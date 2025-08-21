@@ -29,6 +29,7 @@ sum(case when zone is null then 1 else 0 end) as region_nulls
 from markets$
 --2 nulls found in region 
 delete from markets$ where zone is null
+!(image/Screenshot 2025-08-21 204541.png)
 
 select 
 sum(case when product_code is null then 1 else 0 end) as productcode_nulls,
@@ -215,3 +216,4 @@ ORDER BY base_year;
 --While customer retention is exceptionally high at 100%, the lack of new acquisitions suggests stagnation in customer base growth.
 
 --This may indicate reliance on a fixed set of loyal customers, and expansion strategies may be needed for long-term growth.”
+
