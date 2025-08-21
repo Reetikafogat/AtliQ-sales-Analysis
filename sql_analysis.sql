@@ -12,6 +12,7 @@ sum(case when customer_name is null then 1 else 0 end) as customer_name_nulls,
 sum(case when customer_type is null then 1 else 0 end) as customer_type_nulls
 from customers$
 
+    
 select 
 sum(case when date is null then 1 else 0 end) as date_nulls,
 sum(case when [cy-date] is null then 1 else 0 end) as cydate_nulls,
@@ -210,6 +211,7 @@ JOIN y b
   ON b.year = a.year + 1 AND b.customer_name = a.customer_name
 GROUP BY a.year
 ORDER BY base_year;
---ìThe analysis shows that the company had 38 active customers acquired in 2017, and no new customers were added from 2018 to 2020. 
+--‚ÄúThe analysis shows that the company had 38 active customers acquired in 2017, and no new customers were added from 2018 to 2020. 
 --While customer retention is exceptionally high at 100%, the lack of new acquisitions suggests stagnation in customer base growth.
---This may indicate reliance on a fixed set of loyal customers, and expansion strategies may be needed for long-term growth.î
+
+--This may indicate reliance on a fixed set of loyal customers, and expansion strategies may be needed for long-term growth.‚Äù
