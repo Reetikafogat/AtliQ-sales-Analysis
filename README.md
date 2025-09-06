@@ -9,8 +9,34 @@ Solution
 📂 Dataset
 Source: Kaggle – Atliq Hardware Sales Dataset
 The daraset consists of 5 tables:
-customers : stores the information of customers
-dates : stores the dates
-markets : stores the information of various regional offices 
-products : stores the information of the products
-transactions : this is the main table which is used to join through promary key colmns and perform other operations w.r.t other tables 
+Customers : stores the information of customers
+Dates : stores the dates
+Markets : stores the information of various regional offices 
+Products : stores the information of the products
+Transactions :Contains sales amount, quantity sold, dates, and links to products, customers, and markets.
+
+✅ Key Findings
+
+1. Revenue Trends
+
+Sales have varied over time, with certain months and regions contributing disproportionately to total revenue.
+
+Bengaluru and Bhubaneswar stand out as high ASP regions, indicating a premium customer base or better-priced products.
+
+2. Product Performance
+
+A few top products contribute a large percentage of revenue, highlighting the importance of product mix management.
+
+The Average Selling Price (ASP) analysis reveals pricing disparities across products and regions.
+
+3. Growth Analysis
+
+Month-over-Month (MoM) growth fluctuates, with some months showing sharp increases and others declines.
+
+Year-over-Year (YoY) growth highlights seasonal effects and helps identify expanding or shrinking markets.
+
+4. ASP Insights
+
+Certain regions show high ASP but low quantity sold, suggesting niche or premium products.
+
+Other regions have low ASP but high sales volumes, indicating bulk or discount-driven purchases.
